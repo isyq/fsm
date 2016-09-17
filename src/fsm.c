@@ -28,23 +28,23 @@
 fsm_t* fsm_create(fsm_state_t init_state)
 {
     /* Assign memory */
-	fsm_t* fsm = (fsm_t* )calloc(1, sizeof(fsm_t));
+    fsm_t* fsm = (fsm_t* )calloc(1, sizeof(fsm_t));
     if (fsm == NULL) {
         i("Insufficient memory.\r\n");
         return NULL;   
     }
-	
-    /* Set zero */
-    memset(fsm->state_list, 	0, MAX_STATE_SIZE);
-    memset(fsm->event_list, 	0, MAX_EVENT_SIZE);
-    memset(fsm->transition_list, 	0, MAX_TRANSITION_SIZE);
-    fsm->state_count		= 0;
-    fsm->event_count 		= 0;
-	fsm->transition_count  	= 0;
     
+    /* Set zero */
+    memset(fsm->state_list,      0, MAX_STATE_SIZE);
+    memset(fsm->event_list,      0, MAX_EVENT_SIZE);
+    memset(fsm->transition_list, 0, MAX_TRANSITION_SIZE);
+    fsm->state_count        = 0;
+    fsm->event_count        = 0;
+    fsm->transition_count   = 0;
+
     fsm->curr_state_code    = init_state.code;
-	
-	return fsm;
+    
+    return fsm;
 }
 
 /*******************************************************************************
@@ -63,12 +63,12 @@ fsm_t* fsm_create(fsm_state_t init_state)
 *******************************************************************************/
 void fsm_dispose(fsm_t* fsm)
 {
-	if (fsm == NULL) {
-		return;
-	}
-	
-	free(fsm);
-	fsm = NULL;
+    if (fsm == NULL) {
+        return;
+    }
+    
+    free(fsm);
+    fsm = NULL;
 }
 
 /*******************************************************************************
@@ -166,18 +166,18 @@ void fsm_run(fsm_t* fsm, fsm_event_t event)
     uint8 i;
     for (i = 0; i < fsm->transition_count; i++) {
         if (event == fsm->transition_list[i].event) {
-			if (fsm->curr_state_code == fsm->transition_list[i].curr.code) {
-	            fsm->transition_list[i].next.action();
-	            fsm->curr_state_code = fsm->transition_list[i].next.code;
-			}
-            else {
-		        i("Invalid state.\r\n");
+            if (fsm->curr_state_code == fsm->transition_list[i].curr.code) {
+                fsm->transition_list[i].next.action();
+                fsm->curr_state_code = fsm->transition_list[i].next.code;
             }
-	        
+            else {
+                i("Invalid state.\r\n");
+            }
+            
             return;
         }
     }
-	if (i == fsm->transition_count) {
-		i("Invalid event.\r\n");
-	}    
+    if (i == fsm->transition_count) {
+        i("Invalid event.\r\n");
+    }    
 }
