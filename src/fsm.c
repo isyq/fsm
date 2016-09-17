@@ -2,72 +2,182 @@
  * File:   fsm.h
  * Author: isyq
  *
- * Created on September 11, 2016, 12:21 PM
+ * An easy FSM(Finite state machine) library.
  */
 
 #include <stdlib.h>
 #include <string.h>
 #include "fsm.h"
 
-static fsm_state_t      state_list[MAX_STATE_SIZE];
-static fsm_event_t      event_list[MAX_EVENT_SIZE];
-static fsm_transfer_t   transfer_list[MAX_TRANSFER_SIZE];
-static uint8 state_count;
-static uint8 event_count;
-static uint8 transfer_count;
+#include "./logger.h"
 
-static fsm_state_code current_state_code;
-
-void fsm_init(fsm_state_t init_state)
+/*******************************************************************************
+* Function Name: fsm_create
+********************************************************************************
+*
+* Summary:
+*  Create a new finite state machine instant.
+*
+* Parameters:
+*  init_state:  initialized state.
+*
+* Returns:
+*  fsm_t: pointer to the fsm.
+*
+*******************************************************************************/
+fsm_t* fsm_create(fsm_state_t init_state)
 {
-    memset(state_list, 0, MAX_STATE_SIZE);
-    memset(event_list, 0, MAX_EVENT_SIZE);
+    /* Assign memory */
+	fsm_t* fsm = (fsm_t* )calloc(1, sizeof(fsm_t));
+    if (fsm == NULL) {
+        i("Insufficient memory.\r\n");
+        return NULL;   
+    }
+	
+    /* Set zero */
+    memset(fsm->state_list, 	0, MAX_STATE_SIZE);
+    memset(fsm->event_list, 	0, MAX_EVENT_SIZE);
+    memset(fsm->transition_list, 	0, MAX_TRANSITION_SIZE);
+    fsm->state_count		= 0;
+    fsm->event_count 		= 0;
+	fsm->transition_count  	= 0;
     
-    state_count = 0;
-    event_count = 0;
-    
-    current_state_code = init_state.code;
+    fsm->curr_state_code    = init_state.code;
+	
+	return fsm;
 }
 
-void fsm_addState(fsm_state_t state)
+/*******************************************************************************
+* Function Name: fsm_dispose
+********************************************************************************
+*
+* Summary:
+*  Dispose the finite state machine.
+*
+* Parameters:
+*  fsm:  pointer to the fsm.
+*
+* Returns:
+*  None.
+*
+*******************************************************************************/
+void fsm_dispose(fsm_t* fsm)
 {
-    if (state_count > MAX_STATE_SIZE) {
+	if (fsm == NULL) {
+		return;
+	}
+	
+	free(fsm);
+	fsm = NULL;
+}
+
+/*******************************************************************************
+* Function Name: fsm_addState
+********************************************************************************
+*
+* Summary:
+*  Add a state to state machine.
+*
+* Parameters:
+*  fsm:  pointer to the fsm.
+*  state: state.
+*
+* Returns:
+*  None.
+*
+*******************************************************************************/
+void fsm_addState(fsm_t* fsm, fsm_state_t state)
+{
+    if (fsm->state_count > MAX_STATE_SIZE) {
         return;
     }
     
-    state_list[state_count] = state;
-    state_count++;
+    fsm->state_list[fsm->state_count] = state;
+    fsm->state_count++;
 }
 
-void fsm_addEvent(fsm_event_t event)
+/*******************************************************************************
+* Function Name: fsm_addEvent
+********************************************************************************
+*
+* Summary:
+*  Add a event to state machine.
+*
+* Parameters:
+*  fsm:  pointer to the fsm.
+*  event: event.
+*
+* Returns:
+*  None.
+*
+*******************************************************************************/
+void fsm_addEvent(fsm_t* fsm, fsm_event_t event)
 {
-    if (event_count > MAX_EVENT_SIZE) {
+    if (fsm->event_count > MAX_EVENT_SIZE) {
         return;
     }
     
-    event_list[event_count] = event;
-    event_count++;
+    fsm->event_list[fsm->event_count] = event;
+    fsm->event_count++;
 }
 
-void fsm_addTransfer(fsm_transfer_t transfer)
+/*******************************************************************************
+* Function Name: fsm_addTransition
+********************************************************************************
+*
+* Summary:
+*  Add a tranfer to state machine.
+*
+* Parameters:
+*  fsm:  pointer to the fsm.
+*  transition: transition function.
+*
+* Returns:
+*  None.
+*
+*******************************************************************************/
+void fsm_addTransition(fsm_t* fsm, fsm_transition_t transition)
 {
-    if (transfer_count > MAX_TRANSFER_SIZE) {
+    if (fsm->transition_count > MAX_TRANSITION_SIZE) {
         return;
     }
     
-    transfer_list[transfer_count] = transfer;
-    transfer_count++;
+    fsm->transition_list[fsm->transition_count] = transition;
+    fsm->transition_count++;
 }
 
-void fsm_run(fsm_event_t event)
+/*******************************************************************************
+* Function Name: fsm_run
+********************************************************************************
+*
+* Summary:
+*  Process finite state machine events.
+*
+* Parameters:
+*  fsm:  pointer to the fsm.
+*  event: event.
+*
+* Returns:
+*  None.
+*
+*******************************************************************************/
+void fsm_run(fsm_t* fsm, fsm_event_t event)
 {
     uint8 i;
-    for (i = 0; i < transfer_count; i++) {
-        if (event == transfer_list[i].event && current_state_code == transfer_list[i].curr.code) {
-            transfer_list[i].next.action();
-            current_state_code = transfer_list[i].next.code;
-
+    for (i = 0; i < fsm->transition_count; i++) {
+        if (event == fsm->transition_list[i].event) {
+			if (fsm->curr_state_code == fsm->transition_list[i].curr.code) {
+	            fsm->transition_list[i].next.action();
+	            fsm->curr_state_code = fsm->transition_list[i].next.code;
+			}
+            else {
+		        i("Invalid state.\r\n");
+            }
+	        
             return;
         }
     }
+	if (i == fsm->transition_count) {
+		i("Invalid event.\r\n");
+	}    
 }

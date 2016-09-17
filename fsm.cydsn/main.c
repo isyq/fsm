@@ -6,12 +6,12 @@
 
 void door_opened(void)
 {
-    i("The door has opened...\n");
+    i("The door has opened...\r\n");
 }
 
 void door_closed(void)
 {
-    i("The door has closed...\n");
+    i("The door has closed...\r\n");
 }
 
 typedef enum {
@@ -27,25 +27,23 @@ typedef enum {
     DOOR_EVENT_CLOSE, 
 } door_event_t;
 
-void init_door_fsm(void)
+void init_door_fsm(fsm_t* fsm)
 {
-    fsm_init(state_closed);
+    fsm_addState(fsm, state_opened);
+    fsm_addState(fsm, state_closed);
     
-    fsm_addState(state_opened);
-    fsm_addState(state_closed);
+    fsm_addEvent(fsm, (fsm_event_t)DOOR_EVENT_OPEN);
+    fsm_addEvent(fsm, (fsm_event_t)DOOR_EVENT_CLOSE);
     
-    fsm_addEvent((fsm_event_t) DOOR_EVENT_OPEN);
-    fsm_addEvent((fsm_event_t) DOOR_EVENT_CLOSE);
-    
-    fsm_transfer_t door_state_transfer_list[] = {
-        {state_closed, DOOR_EVENT_OPEN, state_opened},
+    fsm_transition_t door_state_transition_list[] = {
+        {state_closed, DOOR_EVENT_OPEN,  state_opened},
         {state_opened, DOOR_EVENT_CLOSE, state_closed},
     };
     
-    uint8 door_state_transfer_list_count = sizeof(door_state_transfer_list) / sizeof(fsm_transfer_t);
+    uint8 door_state_transition_list_count = sizeof(door_state_transition_list) / sizeof(fsm_transition_t);
     uint8 i;
-    for (i = 0; i < door_state_transfer_list_count; i++) {
-        fsm_addTransfer(door_state_transfer_list[i]);    
+    for (i = 0; i < door_state_transition_list_count; i++) {
+        fsm_addTransition(fsm, door_state_transition_list[i]);    
     }
 }
 
@@ -54,15 +52,15 @@ int main(void)
     CyGlobalIntEnable;
     
     logger_start(LOGGER_LEVEL_DEBUG, UART_BAUD_RATE_115200);
-    i("A demo of finite state machine library.\n");
-      
-    init_door_fsm();
+
+    fsm_t* fsm = fsm_create(state_closed);	
+    init_door_fsm(fsm);
     
-    fsm_run(DOOR_EVENT_OPEN);
-    fsm_run(DOOR_EVENT_CLOSE);
-    fsm_run(DOOR_EVENT_OPEN);
-    fsm_run(DOOR_EVENT_OPEN);
-    fsm_run(DOOR_EVENT_OPEN);
+    fsm_run(fsm, DOOR_EVENT_OPEN);
+    fsm_run(fsm, DOOR_EVENT_CLOSE);
+    fsm_run(fsm, DOOR_EVENT_OPEN);
+    fsm_run(fsm, DOOR_EVENT_OPEN);
+    fsm_run(fsm, DOOR_EVENT_OPEN);
     
     while (1);
 }
